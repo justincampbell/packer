@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/mitchellh/multistep"
 	"github.com/mitchellh/packer/packer"
@@ -21,9 +22,18 @@ func (s *stepSnapshot) Run(state multistep.StateBag) multistep.StepAction {
 	err := client.CreateSnapshot(dropletId, c.SnapshotName)
 	if err != nil {
 		err := fmt.Errorf("Error creating snapshot: %s", err)
-		state.Put("error", err)
 		ui.Error(err.Error())
-		return multistep.ActionHalt
+		ui.Say("Waiting 30 seconds to try again...")
+		time.Sleep(30 * time.Second)
+
+		ui.Say(fmt.Sprintf("Creating snapshot: %v", c.SnapshotName))
+		err = client.CreateSnapshot(dropletId, c.SnapshotName)
+		if err != nil {
+			err := fmt.Errorf("Error creating snapshot: %s", err)
+			state.Put("error", err)
+			ui.Error(err.Error())
+			return multistep.ActionHalt
+		}
 	}
 
 	ui.Say("Waiting for snapshot to complete...")
